@@ -1,0 +1,91 @@
+
+function capture_user_data_on_add_to_cart($cart_item_key) {
+    // Only for logged-in users
+    if (is_user_logged_in()) {
+        $user = wp_get_current_user();
+
+        // Get user data
+        $username = $user->user_login;
+        $email = $user->user_email;
+        $user_id = $user->ID; // Get user ID
+
+        // Get user mobile (billing phone number)
+        $mobile_number = get_user_meta($user_id, 'billing_phone', true);
+
+        // Get user address data
+        $billing_address = array(
+            'billing_first_name' => get_user_meta($user_id, 'billing_first_name', true),
+            'billing_last_name'  => get_user_meta($user_id, 'billing_last_name', true),
+            'billing_address_1'  => get_user_meta($user_id, 'billing_address_1', true),
+            'billing_address_2'  => get_user_meta($user_id, 'billing_address_2', true),
+            'billing_city'       => get_user_meta($user_id, 'billing_city', true),
+            'billing_postcode'   => get_user_meta($user_id, 'billing_postcode', true),
+            'billing_country'    => get_user_meta($user_id, 'billing_country', true),
+            'billing_state'      => get_user_meta($user_id, 'billing_state', true),
+        );
+        
+        $shipping_address = array(
+            'shipping_first_name' => get_user_meta($user_id, 'shipping_first_name', true),
+            'shipping_last_name'  => get_user_meta($user_id, 'shipping_last_name', true),
+            'shipping_address_1'  => get_user_meta($user_id, 'shipping_address_1', true),
+            'shipping_address_2'  => get_user_meta($user_id, 'shipping_address_2', true),
+            'shipping_city'       => get_user_meta($user_id, 'shipping_city', true),
+            'shipping_postcode'   => get_user_meta($user_id, 'shipping_postcode', true),
+            'shipping_country'    => get_user_meta($user_id, 'shipping_country', true),
+            'shipping_state'      => get_user_meta($user_id, 'shipping_state', true),
+        );
+
+        // Get products in the cart
+        $cart = WC()->cart->get_cart();
+        $product_details = array();
+
+        foreach ($cart as $cart_item) {
+            $product = $cart_item['data'];
+            $product_name = $product->get_name(); // Get product name
+            $product_url = get_permalink($product->get_id()); // Get product URL
+
+            // Add product name and link to the array
+            $product_details[] = "$product_name - $product_url";
+        }
+
+        // Convert the product details (name and link) to a string (comma-separated)
+        $products_clicked = implode("\n", $product_details);
+
+        // Prepare the message
+        $message = "User Information:\n\n";
+        $message .= "Username: $username\n";
+        $message .= "Email: $email\n";
+        $message .= "User ID: $user_id\n";
+        $message .= "Mobile Number: $mobile_number\n\n";
+
+        // Add billing address to the message
+        $message .= "Billing Address:\n";
+        $message .= $billing_address['billing_first_name'] . ' ' . $billing_address['billing_last_name'] . "\n";
+        $message .= $billing_address['billing_address_1'] . "\n";
+        if ($billing_address['billing_address_2']) {
+            $message .= $billing_address['billing_address_2'] . "\n";
+        }
+        $message .= $billing_address['billing_city'] . ", " . $billing_address['billing_state'] . " " . $billing_address['billing_postcode'] . "\n";
+        $message .= $billing_address['billing_country'] . "\n\n";
+
+        // Add shipping address to the message (if available)
+        $message .= "Shipping Address:\n";
+        $message .= $shipping_address['shipping_first_name'] . ' ' . $shipping_address['shipping_last_name'] . "\n";
+        $message .= $shipping_address['shipping_address_1'] . "\n";
+        if ($shipping_address['shipping_address_2']) {
+            $message .= $shipping_address['shipping_address_2'] . "\n";
+        }
+        $message .= $shipping_address['shipping_city'] . ", " . $shipping_address['shipping_state'] . " " . $shipping_address['shipping_postcode'] . "\n";
+        $message .= $shipping_address['shipping_country'] . "\n\n";
+
+        // Add product details to the message
+        $message .= "Products in Cart:\n$products_clicked";
+
+        // Send email
+        $to = ' your_email_id.com'; // Your email address
+        $subject = 'User Added Products to Cart';
+        wp_mail($to, $subject, $message);
+    }
+}
+
+add_action('woocommerce_add_to_cart', 'capture_user_data_on_add_to_cart');
